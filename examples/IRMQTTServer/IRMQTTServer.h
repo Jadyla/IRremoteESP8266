@@ -62,11 +62,11 @@
 #define BAUD_RATE 115200  // Serial port Baud rate.
 
 // Change if you need multiple independent send gpios & topics. (MQTT only)
-const uint8_t kNrOfIrTxGpios = 1;
+const uint8_t kNrOfIrTxGpios = 8;
 // Default GPIO the IR LED is connected to/controlled by. GPIO 4 = D2.
 // For an ESP-01 we suggest you use RX/GPIO3/Pin 7. i.e. kDefaultIrLed = 3
 // Note: A value of -1 means unused.
-const int8_t kDefaultIrLed = 4;  // <=- CHANGE_ME (optional)
+const int8_t kDefaultIrLed = -1;  // <=- CHANGE_ME (optional)
 
 // **DANGER** Optional flag to invert the output. (default = false)
 //            `false`: The LED is illuminated when the GPIO is HIGH.
@@ -78,11 +78,11 @@ const bool kInvertTxOutput = false;
 
 // Default GPIO the IR demodulator is connected to/controlled by. GPIO 14 = D5.
 // Note: GPIO 16 won't work on the ESP8266 as it does not have interrupts.
-const int8_t kDefaultIrRx = 14;  // <=- CHANGE_ME (optional)
+const int8_t kDefaultIrRx = -1;  // <=- CHANGE_ME (optional)
 
 // Enable/disable receiving/decoding IR messages entirely.
 // Note: IR_RX costs about 40k+ of program memory.
-#define IR_RX true
+#define IR_RX false
 
 // Should we use PULLUP on the IR Rx gpio?
 #define IR_RX_PULLUP false
@@ -284,7 +284,7 @@ const uint16_t kJsonAcStateMaxSize = 1024;  // Bytes
 // See `isSerialGpioUsedByIr()`.
 // Note: Debug costs ~6k of program space.
 #ifndef DEBUG
-#define DEBUG false  // Change to 'true' for serial debug output.
+#define DEBUG true  // Change to 'true' for serial debug output.
 #endif  // DEBUG
 
 // ----------------- End of User Configuration Section -------------------------

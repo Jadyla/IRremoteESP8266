@@ -334,6 +334,7 @@
  */
 
 #include "IRMQTTServer.h"
+#include "thmedia.h"
 #include <Arduino.h>
 
 #include <ArduinoJson.h>
@@ -403,7 +404,7 @@ bool lastSendSucceeded = false;  // Store the success status of the last send.
 uint32_t lastSendTime = 0;
 int8_t offset;  // The calculated period offset for this chip and library.
 IRsend *IrSendTable[kNrOfIrTxGpios];
-int8_t txGpioTable[kNrOfIrTxGpios] = {kDefaultIrLed};
+int8_t txGpioTable[kNrOfIrTxGpios] = THMEDIA_IR_LED_ARRAY;
 String lastClimateSource;
 #if IR_RX
 IRrecv *irrecv = NULL;
@@ -437,7 +438,7 @@ uint32_t mqttSentCounter = 0;
 uint32_t mqttRecvCounter = 0;
 bool wasConnected = true;
 
-char MqttServer[kHostnameLength + 1] = "10.0.0.4";
+char MqttServer[kHostnameLength + 1] = "192.168.68.120";
 char MqttPort[kPortLength + 1] = "1883";
 char MqttUsername[kUsernameLength + 1] = "";
 char MqttPassword[kPasswordLength + 1] = "";
@@ -2135,6 +2136,7 @@ void setup(void) {
   }
 #endif  // DEBUG
 
+  thmedia_setup();
   setup_wifi();
 
 #if DEBUG
