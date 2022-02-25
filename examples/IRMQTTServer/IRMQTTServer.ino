@@ -2151,7 +2151,8 @@ void setup(void) {
       IrSendTable[i] = NULL;
       climate[i] = NULL;
     } else {
-      IrSendTable[i] = new IRsend(txGpioTable[i], kInvertTxOutput);
+      bool use_modulation = txGpioTable[i] == THMEDIA_RF ? false : true;
+      IrSendTable[i] = new IRsend(txGpioTable[i], kInvertTxOutput, use_modulation);
       if (IrSendTable[i] != NULL) {
         IrSendTable[i]->begin();
         offset = IrSendTable[i]->calibrate();
