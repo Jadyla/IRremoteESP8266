@@ -124,7 +124,7 @@ const IPAddress kSubnetMask = IPAddress(255, 255, 255, 0);
 #ifndef MQTT_BUFFER_SIZE
 // A value of 768 handles most cases easily. Use 1024 or more when using
 // `REPORT_RAW_UNKNOWNS` is recommended.
-#define MQTT_BUFFER_SIZE 768  // Default MQTT packet buffer size.
+#define MQTT_BUFFER_SIZE 4096  // Default MQTT packet buffer size.
 #endif  // MQTT_BUFFER_SIZE
 const uint16_t kMqttBufferSize = MQTT_BUFFER_SIZE;  // Packet Buffer size.
 const uint32_t kMqttReconnectTime = 5000;  // Delay(ms) between reconnect tries.
