@@ -27,6 +27,11 @@
 #define MQTT_ENABLE true  // Whether or not MQTT is used at all.
 #endif  // MQTT_ENABLE
 
+#ifndef MQTT_SERVER_AUTODETECT_ENABLE
+// Whether or not MQTT Server IP is detected through mDNS
+#define MQTT_SERVER_AUTODETECT_ENABLE true
+#endif  // MQTT_BROKER_AUTODETECT_ENABLE
+
 #ifndef EXAMPLES_ENABLE
 // Whether or not examples are included. `false` saves ~2.5K of program space.
 #define EXAMPLES_ENABLE true
