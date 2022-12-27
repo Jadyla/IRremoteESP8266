@@ -197,7 +197,7 @@ const uint8_t kCaptureTimeout = 15;  // Milliseconds
 // Ignore unknown messages with <10 pulses (see also REPORT_UNKNOWNS)
 const uint16_t kMinUnknownSize = 2 * 10;
 #define REPORT_UNKNOWNS false  // Report inbound IR messages that we don't know.
-#define REPORT_RAW_UNKNOWNS false  // Report the whole buffer, recommended:
+#define REPORT_RAW_UNKNOWNS true  // Report the whole buffer, recommended:
                                    // MQTT_BUFFER_SIZE of 1024 or more
 
 // Should we use and report individual A/C settings we capture via IR if we

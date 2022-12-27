@@ -2729,12 +2729,9 @@ void loop(void) {
       capture.decode_type != UNKNOWN) {
 #endif  // REPORT_UNKNOWNS
     lastIrReceivedTime = millis();
-    lastIrReceived = String(capture.decode_type) + kCommandDelimiter[0] +
-        resultToHexidecimal(&capture);
 #if REPORT_RAW_UNKNOWNS
-    if (capture.decode_type == UNKNOWN) {
-      lastIrReceived += ';';
-      for (uint16_t i = 1; i < capture.rawlen; i++) {
+    lastIrReceived = "";    
+      for (uint16_t i = 1; i < capture.rawlen/2; i++) {
         uint32_t usecs;
         for (usecs = capture.rawbuf[i] * kRawTick; usecs > UINT16_MAX;
              usecs -= UINT16_MAX) {
@@ -2745,11 +2742,10 @@ void loop(void) {
         if (i < capture.rawlen - 1)
           lastIrReceived += ',';
       }
-    }
 #endif  // REPORT_RAW_UNKNOWNS
     // If it isn't an AC code, add the bits.
     if (!hasACState(capture.decode_type))
-      lastIrReceived += kCommandDelimiter[0] + String(capture.bits);
+      lastIrReceived += resultToHexidecimal(&capture);
 #if MQTT_ENABLE
     mqtt_client.publish(MqttRecv.c_str(), lastIrReceived.c_str());
     mqttSentCounter++;
