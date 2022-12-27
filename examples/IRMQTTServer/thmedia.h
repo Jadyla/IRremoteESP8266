@@ -18,4 +18,6 @@
 
 #define THMEDIA_RF 4
 
+#define thmediaIrRx 21
+
 void thmedia_setup();

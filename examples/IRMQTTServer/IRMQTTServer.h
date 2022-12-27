@@ -20,6 +20,7 @@
 #include <IRtimer.h>
 #include <IRutils.h>
 #include <IRac.h>
+#include "thmedia.h"
 
 // ---------------- Start of User Configuration Section ------------------------
 
@@ -78,11 +79,11 @@ const bool kInvertTxOutput = false;
 
 // Default GPIO the IR demodulator is connected to/controlled by. GPIO 14 = D5.
 // Note: GPIO 16 won't work on the ESP8266 as it does not have interrupts.
-const int8_t kDefaultIrRx = -1;  // <=- CHANGE_ME (optional)
+const int8_t kDefaultIrRx = thmediaIrRx;  // <=- CHANGE_ME (optional)
 
 // Enable/disable receiving/decoding IR messages entirely.
 // Note: IR_RX costs about 40k+ of program memory.
-#define IR_RX false
+#define IR_RX true
 
 // Should we use PULLUP on the IR Rx gpio?
 #define IR_RX_PULLUP false
