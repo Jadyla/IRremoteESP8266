@@ -9,6 +9,7 @@ void init_channel(int IR_PWMX) {
 }
 
 void thmedia_setup() {
+  init_channel(THMEDIA_RF);
   init_channel(THMEDIA_IR_PWM1);
   init_channel(THMEDIA_IR_PWM2);
   init_channel(THMEDIA_IR_PWM3);

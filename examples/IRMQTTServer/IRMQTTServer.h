@@ -63,7 +63,7 @@
 #define BAUD_RATE 115200  // Serial port Baud rate.
 
 // Change if you need multiple independent send gpios & topics. (MQTT only)
-const uint8_t kNrOfIrTxGpios = 8;
+const uint8_t kNrOfIrTxGpios = 9;
 // Default GPIO the IR LED is connected to/controlled by. GPIO 4 = D2.
 // For an ESP-01 we suggest you use RX/GPIO3/Pin 7. i.e. kDefaultIrLed = 3
 // Note: A value of -1 means unused.
@@ -81,9 +81,17 @@ const bool kInvertTxOutput = false;
 // Note: GPIO 16 won't work on the ESP8266 as it does not have interrupts.
 const int8_t kDefaultIrRx = thmediaIrRx;  // <=- CHANGE_ME (optional)
 
+// Default GPIO the RF Receiver is connected
+const int8_t kDefaultRfRx = thmediaRfRx;  // <=- CHANGE_ME (optional)
+
 // Enable/disable receiving/decoding IR messages entirely.
 // Note: IR_RX costs about 40k+ of program memory.
 #define IR_RX true
+
+// Enable/disable receiving/decoding RF messages entirely.
+// Receive/decoding RF signals based on RCSwitch library, at: https://github.com/sui77/rc-switch
+// Note: for enable is necessary a receiver/transmitter 433MHz module.
+#define RF_RX true
 
 // Should we use PULLUP on the IR Rx gpio?
 #define IR_RX_PULLUP false
@@ -133,6 +141,7 @@ const uint32_t kMqttReconnectTime = 5000;  // Delay(ms) between reconnect tries.
 #define MQTT_ACK "sent"  // Sub-topic we send back acknowledgements on.
 #define MQTT_SEND "send"  // Sub-topic we get new commands from.
 #define MQTT_RECV "received"  // Topic we send received IRs to.
+#define MQTT_RECV_RF "received_rf"  // Topic we send received RFs to.
 #define MQTT_LOG "log"  // Topic we send log messages to.
 #define MQTT_LWT "status"  // Topic for the Last Will & Testament.
 #define MQTT_CLIMATE "ac"  // Sub-topic for the climate topics.
@@ -265,6 +274,7 @@ const uint16_t kMinUnknownSize = 2 * 10;
 // GPIO html/config keys
 #define KEY_TX_GPIO "tx"
 #define KEY_RX_GPIO "rx"
+#define KEY_RX_GPIO_RF "rx_rf"
 
 // Text for Last Will & Testament status messages.
 const char* const kLwtOnline = "Online";
