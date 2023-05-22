@@ -394,7 +394,7 @@ WiFiClient espClient;
 WiFiManager wifiManager;
 bool flagSaveWifiConfig = false;
 char HttpUsername[kUsernameLength + 1] = "admin";  // Default HTTP username.
-char HttpPassword[kPasswordLength + 1] = "";  // No HTTP password by default.
+char HttpPassword[kPasswordLength + 1] = "admin";  // No HTTP password by default.
 char Hostname[kHostnameLength + 1] = "ir_server";  // Default hostname.
 uint16_t *codeArray;
 uint32_t lastReconnectAttempt = 0;  // MQTT last attempt reconnection number

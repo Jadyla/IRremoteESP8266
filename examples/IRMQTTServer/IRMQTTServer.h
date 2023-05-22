@@ -123,7 +123,7 @@ const IPAddress kSubnetMask = IPAddress(255, 255, 255, 0);
                            // Less secure if enabled.
                            // Note: Firmware OTA is also disabled until
                            //       a password is set.
-#define HTML_PASSWORD_ENABLE false  // Protect access to the HTML interface.
+#define HTML_PASSWORD_ENABLE true  // Protect access to the HTML interface.
                                     // Note: OTA & GPIO updates are always
                                     //       passworded.
 // If you do not set a password, Firmware OTA & GPIO updates will be blocked.
