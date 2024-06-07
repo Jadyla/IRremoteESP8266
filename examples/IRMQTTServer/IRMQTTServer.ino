@@ -359,6 +359,7 @@
 #include <IRtimer.h>
 #include <IRutils.h>
 #include <IRac.h>
+#include <RCSwitch.h> // RF record/decoding
 #if MQTT_ENABLE
 #include <PubSubClient.h>
 #endif  // MQTT_ENABLE
@@ -414,6 +415,13 @@ String lastIrReceived = FPSTR("None");
 uint32_t lastIrReceivedTime = 0;
 uint32_t irRecvCounter = 0;
 #endif  // IR_RX
+#if RF_RX
+RCSwitch mySwitch = RCSwitch();
+int8_t rx_gpio_rf = kDefaultRfRx;
+String lastRfReceived = "";
+uint32_t lastRfReceivedTime = 0;
+uint32_t rfRecvCounter = 0;
+#endif // RF_RX
 
 // Climate stuff
 IRac *climate[kNrOfIrTxGpios];
@@ -447,6 +455,7 @@ char MqttPrefix[kHostnameLength + 1] = "";
 String MqttAck;  // Sub-topic we send back acknowledgements on.
 String MqttSend;  // Sub-topic we get new commands from.
 String MqttRecv;  // Topic we send received IRs to.
+String MqttRecvRf;  // Topic we send received RFs to.
 String MqttLog;  // Topic we send log messages to.
 String MqttLwt;  // Topic for the Last Will & Testament.
 String MqttClimate;  // Sub-topic for the climate topics.
@@ -551,6 +560,9 @@ bool saveConfig(void) {
 #if IR_RX
   json[KEY_RX_GPIO] = static_cast<int>(rx_gpio);
 #endif  // IR_RX
+#if RF_RX
+  json[KEY_RX_GPIO_RF] = static_cast<int>(rx_gpio_rf);
+#endif // RF_RX
   for (uint16_t i = 0; i < kNrOfIrTxGpios; i++) {
     const String key = KEY_TX_GPIO + String(i);
     json[key] = static_cast<int>(txGpioTable[i]);
@@ -604,6 +616,9 @@ bool loadConfigFile(void) {
           // Single RX gpio
           rx_gpio = json[KEY_RX_GPIO] | kDefaultIrRx;
 #endif  // IR_RX
+#if RF_RX
+          rx_gpio_rf = json[KEY_RX_GPIO_RF] | kDefaultRfRx;
+#endif // RF_RX
           // Potentially multiple TX gpios
           for (uint16_t i = 0; i < kNrOfIrTxGpios; i++)
             txGpioTable[i] = json[String(KEY_TX_GPIO + String(i)).c_str()] |
@@ -1281,6 +1296,13 @@ void handleInfo(void) {
     "Last IR Received: ") + lastIrReceived +
     F(" <i>(") + timeSince(lastIrReceivedTime) + F(")</i><br>"
 #endif  // IR_RX
+#if RF_RX
+    "RF Recv GPIO: ") + gpioToString(rx_gpio_rf) + F(
+    "<br>"
+    "Total RF Received: ") + String(rfRecvCounter) + F("<br>"
+    "Last RF Received: ") + lastRfReceived +
+    F(" <i>(") + timeSince(lastRfReceivedTime) + F(")</i><br>"
+#endif // RF_RX
     "Duplicate " D_STR_WIFI " networks: ") +
         String(HIDE_DUPLICATE_NETWORKS ? F("Hide") : F("Show")) + F("<br>"
     "Min " D_STR_WIFI " signal required: "
@@ -1319,6 +1341,9 @@ void handleInfo(void) {
 #if IR_RX
     "IR Received topic: ") + MqttRecv + F("<br>"
 #endif  // IR_RX
+#if RF_RX
+    "RF Received topic: ") + MqttRecvRf + F("<br>"
+#endif // RF_RX
     "Log topic: ") + MqttLog + F("<br>"
     "LWT topic: ") + MqttLwt + F("<br>"
     "QoS: ") + String(QOS) + F("<br>"
@@ -1902,6 +1927,11 @@ void handleGpio(void) {
   html += htmlSelectGpio(KEY_RX_GPIO, rx_gpio, kRxGpios,
                          sizeof(kRxGpios));
 #endif  // IR_RX
+#if RF_RX
+  html += F(" RF RX Module");
+  html += htmlSelectGpio(KEY_RX_GPIO_RF, rx_gpio_rf, kRxGpios,
+                         sizeof(kRxGpios));
+#endif  // RF_RX
   html += F("<br><br><hr>");
   if (strlen(HttpPassword))  // Allow if password set
     html += F("<input type='submit' value='Save & Reboot'>");
@@ -2097,6 +2127,8 @@ void init_vars(void) {
   MqttSend = String(MqttPrefix) + '/' + MQTT_SEND;
   // Topic we send received IRs to.
   MqttRecv = String(MqttPrefix) + '/' + MQTT_RECV;
+  // Topic we send received RFs to.
+  MqttRecvRf = String(MqttPrefix) + '/' + MQTT_RECV_RF;
   // Topic we send log messages to.
   MqttLog = String(MqttPrefix) + '/' + MQTT_LOG;
   // Topic for the Last Will & Testament.
@@ -2179,6 +2211,9 @@ void setup(void) {
     irrecv->enableIRIn(IR_RX_PULLUP);  // Start the receiver
   }
 #endif  // IR_RX
+#if RF_RX
+  mySwitch.enableReceive(rx_gpio_rf);
+#endif // RF_RX
   // Wait a bit for things to settle.
   delay(500);
 
@@ -2729,12 +2764,9 @@ void loop(void) {
       capture.decode_type != UNKNOWN) {
 #endif  // REPORT_UNKNOWNS
     lastIrReceivedTime = millis();
-    lastIrReceived = String(capture.decode_type) + kCommandDelimiter[0] +
-        resultToHexidecimal(&capture);
 #if REPORT_RAW_UNKNOWNS
-    if (capture.decode_type == UNKNOWN) {
-      lastIrReceived += ';';
-      for (uint16_t i = 1; i < capture.rawlen; i++) {
+    lastIrReceived = "";
+      for (uint16_t i = 1; i < capture.rawlen/2; i++) {
         uint32_t usecs;
         for (usecs = capture.rawbuf[i] * kRawTick; usecs > UINT16_MAX;
              usecs -= UINT16_MAX) {
@@ -2745,11 +2777,10 @@ void loop(void) {
         if (i < capture.rawlen - 1)
           lastIrReceived += ',';
       }
-    }
 #endif  // REPORT_RAW_UNKNOWNS
     // If it isn't an AC code, add the bits.
     if (!hasACState(capture.decode_type))
-      lastIrReceived += kCommandDelimiter[0] + String(capture.bits);
+      lastIrReceived += resultToHexidecimal(&capture);
 #if MQTT_ENABLE
     mqtt_client.publish(MqttRecv.c_str(), lastIrReceived.c_str());
     mqttSentCounter++;
@@ -2763,6 +2794,25 @@ void loop(void) {
   }
 #endif  // IR_RX
   delay(100);
+#if RF_RX
+  lastRfReceivedTime = millis();
+  lastRfReceived = "";
+  if (mySwitch.available()) {
+    unsigned int* raw;
+    raw = mySwitch.getReceivedRawdata();
+    for (unsigned int i=0; i<= mySwitch.getReceivedBitlength()*2; i++) {
+      lastRfReceived += uint64ToString(raw[i]);
+      lastRfReceived += ',';
+    }
+#if MQTT_ENABLE
+    mqtt_client.publish(MqttRecvRf.c_str(), lastRfReceived.c_str());
+    debug("Incoming IR message sent to MQTT:");
+    debug(lastRfReceived.c_str());
+#endif  // MQTT_ENABLE
+    rfRecvCounter++;
+    mySwitch.resetAvailable();
+  }
+#endif // RF_RX
 }
 
 // Arduino framework doesn't support strtoull(), so make our own one.
