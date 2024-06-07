@@ -147,6 +147,7 @@ const uint32_t kMqttReconnectTime = 5000;  // Delay(ms) between reconnect tries.
 #define MQTT_CLIMATE "ac"  // Sub-topic for the climate topics.
 #define MQTT_CLIMATE_CMND "cmnd"  // Sub-topic for the climate command topics.
 #define MQTT_CLIMATE_STAT "stat"  // Sub-topic for the climate stat topics.
+#define MQTT_DEVICES "devices"  // Sub-topic for the MAC address.
 // Enable sending/receiving climate via JSON. `true` cost ~5k of program space.
 #define MQTT_CLIMATE_JSON false
 
@@ -171,7 +172,7 @@ const uint32_t kMqttReconnectTime = 5000;  // Delay(ms) between reconnect tries.
 // down. If set to `true`, it will resend the previous desired state sent to the
 // A/C. Depending on your circumstances, you may need to change this.
 #define MQTT_CLIMATE_IR_SEND_ON_RESTART false
-#define MQTTbroadcastInterval 10 * 60  // Seconds between rebroadcasts.
+#define MQTTbroadcastInterval 1 * 60  // Seconds between rebroadcasts.
 
 #define QOS 1  // MQTT broker should queue up any unreceived messages for us
 // #define QOS 0  // MQTT broker WON'T queue up messages for us. Fire & Forget.

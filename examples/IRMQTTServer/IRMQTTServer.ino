@@ -459,6 +459,7 @@ String MqttRecvRf;  // Topic we send received RFs to.
 String MqttLog;  // Topic we send log messages to.
 String MqttLwt;  // Topic for the Last Will & Testament.
 String MqttClimate;  // Sub-topic for the climate topics.
+String MqttDevicesMap; // Sub-topic for the devices map topics.
 String MqttClimateCmnd;  // Sub-topic for the climate command topics.
 #if MQTT_DISCOVERY_ENABLE
 String MqttDiscovery;
@@ -2124,17 +2125,19 @@ void init_vars(void) {
   // Topic we send back acknowledgements on.
   MqttAck = String(MqttPrefix) + '/' + MQTT_ACK;
   // Sub-topic we get new commands from.
-  MqttSend = String(MqttPrefix) + '/' + MQTT_SEND;
+  MqttSend = String(MqttPrefix) + '/' + WiFi.macAddress() + '/' + MQTT_SEND;
   // Topic we send received IRs to.
-  MqttRecv = String(MqttPrefix) + '/' + MQTT_RECV;
+  MqttRecv = String(MqttPrefix) + '/' + WiFi.macAddress() + '/' + MQTT_RECV;
   // Topic we send received RFs to.
-  MqttRecvRf = String(MqttPrefix) + '/' + MQTT_RECV_RF;
+  MqttRecvRf = String(MqttPrefix) + '/' + WiFi.macAddress() + '/' + MQTT_RECV_RF;
   // Topic we send log messages to.
   MqttLog = String(MqttPrefix) + '/' + MQTT_LOG;
   // Topic for the Last Will & Testament.
   MqttLwt = String(MqttPrefix) + '/' + MQTT_LWT;
   // Sub-topic for the climate topics.
   MqttClimate = String(MqttPrefix) + '/' + MQTT_CLIMATE;
+  // Sub-topic for map on host multiples online esp32 devices.
+  MqttDevicesMap = String(MqttPrefix) + '/' + MQTT_DEVICES;
   // Sub-topic for the climate command topics.
   MqttClimateCmnd = MqttClimate + '/' + MQTT_CLIMATE_CMND + '/';
   // Sub-topic for the climate stat topics.
@@ -2472,9 +2475,10 @@ void doBroadcast(TimerMs *timer, const uint32_t interval,
                  const bool force) {
   if (force || (!lockMqttBroadcast && timer->elapsed() > interval)) {
     debug("Sending MQTT stat update broadcast.");
+    mqtt_client.publish(MqttDevicesMap.c_str(), WiFi.macAddress().c_str());
     for (uint16_t i = 0; i < kNrOfIrTxGpios; i++) {
       String stat_topic = genStatTopic(i);
-      sendClimate(stat_topic, retain, true, false, true, climate[i]);
+      //sendClimate(stat_topic, retain, true, false, true, climate[i]);
 #if REPORT_VCC
       sendString(stat_topic + KEY_VCC, vccToString(), false);
 #endif  // REPORT_VCC
@@ -2722,6 +2726,8 @@ void loop(void) {
         }
         lastConnectedTime = now;
         debug("successful client mqtt connection");
+        // Send mac address to save on host when connected
+        mqtt_client.publish(MqttDevicesMap.c_str(), WiFi.macAddress().c_str());
         if (lockMqttBroadcast) {
           // Attempt to fetch back any Climate state stored in MQTT retained
           // messages on the MQTT broker.
