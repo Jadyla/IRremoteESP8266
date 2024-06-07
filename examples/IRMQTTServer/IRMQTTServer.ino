@@ -2730,6 +2730,9 @@ void loop(void) {
             subscribing(genStatTopic(i) + '+');
           statListenTime.reset();
         }
+      } else {
+        debug("------ Restarting ------");
+        setup_wifi();  // Reconnect to WiFi if MQTT fails.
       }
     }
   } else {
