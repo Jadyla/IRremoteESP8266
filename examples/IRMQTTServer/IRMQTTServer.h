@@ -193,7 +193,7 @@ const uint32_t kMqttReconnectTime = 5000;  // Delay(ms) between reconnect tries.
 // Use `false` if it isn't or can't see the self-sent transmissions
 // Using `true` may mean some incoming IR messages are lost or garbled.
 // i.e. `false` is better if you can get away with it.
-#define DISABLE_CAPTURE_WHILE_TRANSMITTING true
+#define DISABLE_CAPTURE_WHILE_TRANSMITTING false
 // Let's use a larger than normal buffer so we can handle AirCon remote codes.
 const uint16_t kCaptureBufferSize = 1024;
 #if DECODE_AC
