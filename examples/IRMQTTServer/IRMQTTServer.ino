@@ -360,6 +360,7 @@
 #include <IRutils.h>
 #include <IRac.h>
 #include <RCSwitch.h> // RF record/decoding
+#include <UIPEthernet.h>
 #if MQTT_ENABLE
 #include <PubSubClient.h>
 #endif  // MQTT_ENABLE
@@ -390,7 +391,9 @@ WebServer server(kHttpPort);
 #if MDNS_ENABLE
 MDNSResponder mdns;
 #endif  // MDNS_ENABLE
-WiFiClient espClient;
+Client* espClient; // For MQTT.
+WiFiClient wifiClient;
+EthernetClient ethClient;
 WiFiManager wifiManager;
 bool flagSaveWifiConfig = false;
 char HttpUsername[kUsernameLength + 1] = "admin";  // Default HTTP username.
@@ -407,6 +410,7 @@ int8_t offset;  // The calculated period offset for this chip and library.
 IRsend *IrSendTable[kNrOfIrTxGpios];
 int8_t txGpioTable[kNrOfIrTxGpios] = THMEDIA_IR_LED_ARRAY;
 String lastClimateSource;
+bool ethernet_connected = false;
 #if IR_RX
 IRrecv *irrecv = NULL;
 decode_results capture;  // Somewhere to store inbound IR messages.
@@ -435,7 +439,7 @@ bool lastClimateSucceeded = false;
 bool hasClimateBeenSent = false;  // Has the Climate ever been sent?
 
 #if MQTT_ENABLE
-PubSubClient mqtt_client(espClient);
+PubSubClient mqtt_client(*espClient);
 String lastMqttCmd = FPSTR("None");
 String lastMqttCmdTopic = FPSTR("None");
 uint32_t lastMqttCmdTime = 0;
@@ -2011,6 +2015,9 @@ void handleNotFound(void) {
 
 #if MQTT_SERVER_AUTODETECT_ENABLE
 void mqtt_detect_server(void) {
+  if (ethernet_connected) {
+    return;
+  }
   debug("Querying MQTT server...");
   int nrOfServices = MDNS.queryService("mqtt", "tcp");
   if (nrOfServices == 0) {
@@ -2026,6 +2033,8 @@ void mqtt_detect_server(void) {
   }
   strncpy(MqttServer, MDNS.IP(0).toString().c_str(), kHostnameLength);
   strncpy(MqttPort, String(MDNS.port(0)).c_str(), kPortLength);
+
+  saveConfig();
 
   debug(("First one selected: " + String(MqttServer) + ":" +
          String(MqttPort)).c_str());
@@ -2096,26 +2105,52 @@ void setup_wifi(void) {
 #endif  // MIN_SIGNAL_STRENGTH
   wifiManager.setRemoveDuplicateAPs(HIDE_DUPLICATE_NETWORKS);
 
-  if (!wifiManager.autoConnect())
-    // Reboot. A.k.a. "Have you tried turning it Off and On again?"
-    doRestart(D_STR_WIFI " failed to connect and hit timeout. Rebooting...",
-              true);
+  Ethernet.init(ETHERNET_CS_PIN);
+  delay(100);
+  if (Ethernet.linkStatus() == LinkON) {
+    WiFi.mode(WIFI_STA);
+    debug("Trying to configure Ethernet using DHCP...");
+    byte mac[6];
+    for (int i = 0; i < 6; i++) {
+      mac[i] = (kChipIdFull >> (8 * i)) & 0xFF;
+    }
+    if (Ethernet.begin(mac) == 0) {
+      ethernet_connected = false;
+      debug("Failed to configure Ethernet using DHCP.");
+    } else {
+      debug("Ethernet IP");
+      debug(Ethernet.localIP().toString().c_str());
+      ethernet_connected = true;
+      espClient = &ethClient;
+    }
+    WiFi.mode(WIFI_OFF);
+  }
 
-#if MQTT_ENABLE
-  strncpy(MqttServer, custom_mqtt_server.getValue(), kHostnameLength);
-  strncpy(MqttPort, custom_mqtt_port.getValue(), kPortLength);
-  strncpy(MqttUsername, custom_mqtt_user.getValue(), kUsernameLength);
-  strncpy(MqttPassword, custom_mqtt_pass.getValue(), kPasswordLength);
-  strncpy(MqttPrefix, custom_mqtt_prefix.getValue(), kHostnameLength);
-#endif  // MQTT_ENABLE
-  strncpy(Hostname, custom_hostname.getValue(), kHostnameLength);
-  strncpy(HttpUsername, custom_http_username.getValue(), kUsernameLength);
-  strncpy(HttpPassword, custom_http_password.getValue(), kPasswordLength);
+  if (!ethernet_connected) {
+    debug("Ethernet not connected.");
+    if (!wifiManager.autoConnect())
+      doRestart(D_STR_WIFI " and ethernet failed to connect and hit timeout. Rebooting...",
+                true);
+    espClient = &wifiClient;
+  }
+
+  mqtt_client.setClient(*espClient);
+
   if (flagSaveWifiConfig) {
+#if MQTT_ENABLE
+    strncpy(MqttServer, custom_mqtt_server.getValue(), kHostnameLength);
+    strncpy(MqttPort, custom_mqtt_port.getValue(), kPortLength);
+    strncpy(MqttUsername, custom_mqtt_user.getValue(), kUsernameLength);
+    strncpy(MqttPassword, custom_mqtt_pass.getValue(), kPasswordLength);
+    strncpy(MqttPrefix, custom_mqtt_prefix.getValue(), kHostnameLength);
+#endif  // MQTT_ENABLE
+    strncpy(Hostname, custom_hostname.getValue(), kHostnameLength);
+    strncpy(HttpUsername, custom_http_username.getValue(), kUsernameLength);
+    strncpy(HttpPassword, custom_http_password.getValue(), kPasswordLength);
+    debug("");
     saveConfig();
   }
-  debug("WiFi connected. IP address:");
-  debug(WiFi.localIP().toString().c_str());
+  flagSaveWifiConfig = false;
 }
 
 void init_vars(void) {
@@ -2693,6 +2728,14 @@ void sendMQTTDiscovery(const char *topic) {
 #endif  // MQTT_ENABLE
 
 void loop(void) {
+  if (ethernet_connected) {
+    Ethernet.maintain();
+    if (Ethernet.linkStatus() == LinkOFF) {
+      debug("Ethernet cable unplugged.");
+      ethernet_connected = false;
+      setup_wifi();
+    }
+  }
 #if MDNS_ENABLE && defined(ESP8266)
   mdns.update();
 #endif  // MDNS_ENABLE and ESP8266

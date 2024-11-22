@@ -128,6 +128,8 @@ const IPAddress kSubnetMask = IPAddress(255, 255, 255, 0);
                                     //       passworded.
 // If you do not set a password, Firmware OTA & GPIO updates will be blocked.
 
+#define ETHERNET_CS_PIN 5  // The SPI CS pin for the Ethernet module.
+
 // ----------------------- MQTT Related Settings -------------------------------
 #if MQTT_ENABLE
 #ifndef MQTT_BUFFER_SIZE
@@ -364,6 +366,7 @@ const uint32_t kChipId = ESP.getChipId();
 #endif  // ESP8266
 #if defined(ESP32)
 const uint32_t kChipId = ESP.getEfuseMac();  // Discard the top 16 bits.
+const uint64_t kChipIdFull = ESP.getEfuseMac();
 #endif  // ESP32
 
 static const char kClimateTopics[] PROGMEM =
