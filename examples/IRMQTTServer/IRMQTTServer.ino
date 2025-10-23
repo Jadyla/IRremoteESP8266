@@ -2148,7 +2148,9 @@ void init_vars(void) {
 #endif  // MQTT_DISCOVERY_ENABLE
   MqttHAName = String(Hostname) + "_aircon";
   // Create a unique MQTT client id.
-  MqttClientId = String(Hostname) + String(kChipId, HEX);
+  String macAddress_clientID = WiFi.macAddress();
+  macAddress_clientID.replace(":", ""); // Remove :
+  MqttClientId = String("thmedia") + String(macAddress_clientID);
 #endif  // MQTT_ENABLE
 }
 
