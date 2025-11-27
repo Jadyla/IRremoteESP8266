@@ -361,6 +361,9 @@
 #include <IRac.h>
 #include <RCSwitch.h> // RF record/decoding
 #include <UIPEthernet.h>
+#if MQTT_SERVER_AUTODETECT_ENABLE
+#include <UIPUdp.h>
+#endif  // MQTT_SERVER_AUTODETECT_ENABLE
 #if MQTT_ENABLE
 #include <PubSubClient.h>
 #endif  // MQTT_ENABLE
@@ -426,6 +429,13 @@ String lastRfReceived = "";
 uint32_t lastRfReceivedTime = 0;
 uint32_t rfRecvCounter = 0;
 #endif // RF_RX
+#if MQTT_SERVER_AUTODETECT_ENABLE
+EthernetUDP Udp;
+const int DISC_PORT = 5555;
+IPAddress brokerIP;
+uint16_t brokerPort;
+bool brokerFound = false;
+#endif  // MQTT_SERVER_AUTODETECT_ENABLE
 
 // Climate stuff
 IRac *climate[kNrOfIrTxGpios];
@@ -2014,8 +2024,63 @@ void handleNotFound(void) {
 }
 
 #if MQTT_SERVER_AUTODETECT_ENABLE
+bool discoverMQTT() {
+  debug("Starting MQTT discovery (UDP broadcast)");
+
+  if (!Udp.begin(DISC_PORT)) {
+    debug("Failed to start UDP!");
+    return false;
+  }
+
+  IPAddress broadcastIP(255,255,255,255);
+  Udp.beginPacket(broadcastIP, DISC_PORT);
+  Udp.write("MQTT_DISCOVER");
+  Udp.endPacket();
+  debug("Package sent: MQTT_DISCOVER");
+
+  unsigned long start = millis();
+  const unsigned long timeout = 1500;
+
+  while (millis() - start < timeout) {
+    int packetSize = Udp.parsePacket();
+    if (packetSize) {
+      char buffer[64];
+      int len = Udp.read(buffer, sizeof(buffer) - 1);
+      buffer[len] = '\0';
+
+      debug(("Response: " + String(buffer)).c_str());
+
+      char prefix[8];
+      char ipStr[32];
+      int portVal;
+
+      int ret = sscanf(buffer, "%s %31s %d", prefix, ipStr, &portVal);
+      if (ret == 3 && strcmp(prefix, "MQTT") == 0) {
+        brokerIP.fromString(ipStr);
+        brokerPort = portVal;
+        brokerFound = true;
+
+        debug(("Broker IP: " + brokerIP.toString()).c_str());
+        debug(("Port: " + String(brokerPort)).c_str());
+        return true;
+      }
+    }
+  }
+
+  debug("Discovery without response.");
+  return false;
+}
 void mqtt_detect_server(void) {
   if (ethernet_connected) {
+    discoverMQTT();
+    if (brokerFound) {
+      strncpy(MqttServer, brokerIP.toString().c_str(), kHostnameLength);
+      strncpy(MqttPort, String(brokerPort).c_str(), kPortLength);
+      saveConfig();
+      debug(("MQTT server found: " + String(MqttServer) + ":" + String(MqttPort)).c_str());
+      return;
+    }
+    debug("MQTT server not found");
     return;
   }
   debug("Querying MQTT server...");
