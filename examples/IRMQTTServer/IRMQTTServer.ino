@@ -2109,7 +2109,7 @@ void setup_wifi(void) {
   delay(100);
   if (Ethernet.linkStatus() == LinkON) {
     WiFi.mode(WIFI_STA);
-    debug("Trying to configure Ethernet using DHCP...");
+    debug("=== ETHERNET CONFIGURATION ===");
     byte mac[6];
     for (int i = 0; i < 6; i++) {
       mac[i] = (kChipIdFull >> (8 * i)) & 0xFF;
@@ -2118,12 +2118,13 @@ void setup_wifi(void) {
       ethernet_connected = false;
       debug("Failed to configure Ethernet using DHCP.");
     } else {
-      debug("Ethernet IP");
-      debug(Ethernet.localIP().toString().c_str());
+      debug(("Ethernet IP: " + Ethernet.localIP().toString()).c_str());
       ethernet_connected = true;
       espClient = &ethClient;
     }
     WiFi.mode(WIFI_OFF);
+  } else {
+    debug("=== WIFI CONFIGURATION ===");
   }
 
   if (!ethernet_connected) {
